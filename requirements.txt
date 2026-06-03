@@ -1,0 +1,11 @@
+# Real RAG stack
+qdrant-client>=1.7          # vector store (runs embedded in :memory: mode, no server needed)
+sentence-transformers>=2.2  # local embedding model (all-MiniLM-L6-v2, auto-downloads on first use)
+
+# LangGraph orchestration (agentic/graph.py + main_graph.py). The hand-rolled
+# agent in agentic/agent.py has no framework dependency; this powers the
+# StateGraph variant. Tests for it are skipped if it isn't installed.
+langgraph>=1.0
+
+# Tests
+pytest>=7.0
