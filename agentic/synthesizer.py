@@ -14,9 +14,20 @@ from agentic.models import Citation, Evidence, ToolName, ToolResult
 
 
 class Synthesizer:
-    def __init__(self, max_evidence: int = 4, snippet_chars: int = 160) -> None:
+    def __init__(
+        self,
+        max_evidence: int = 4,
+        snippet_chars: int = 160,
+        min_score: float = 0.25,
+    ) -> None:
         self.max_evidence = max_evidence
         self.snippet_chars = snippet_chars
+        # Evidence below this relevance score is dropped rather than cited, so a
+        # query with only one or two on-topic chunks doesn't get padded out to
+        # `max_evidence` with weakly related filler. The threshold suits
+        # normalized cosine scores (MiniLM ~0.4-0.6 on-topic, ~0.1-0.2 off);
+        # tools on a different score scale should set this accordingly.
+        self.min_score = min_score
 
     def synthesize(
         self, query: str, results: list[ToolResult]
@@ -54,8 +65,14 @@ class Synthesizer:
         return self._append_degradation(answer, degraded_tools), citations
 
     def _rank(self, results: list[ToolResult]) -> list[Evidence]:
-        """Flatten successful results and keep the highest-scoring evidence."""
-        evidence = [ev for r in results if r.ok for ev in r.evidence]
+        """Flatten successful results, drop weak hits, keep the top scorers."""
+        evidence = [
+            ev
+            for r in results
+            if r.ok
+            for ev in r.evidence
+            if ev.score >= self.min_score
+        ]
         evidence.sort(key=lambda e: e.score, reverse=True)
         return evidence[: self.max_evidence]
 

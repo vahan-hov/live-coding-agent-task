@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
 from typing import Protocol, runtime_checkable
 
 
@@ -44,6 +45,13 @@ class SentenceTransformerEmbedder:
     def _ensure_model(self) -> None:
         if self._model is not None:
             return
+        # Quiet the Hugging Face hub's "no HF_TOKEN" notice and download bars: we
+        # use a small public model anonymously and don't need a token. Set before
+        # importing sentence-transformers (which pulls in huggingface_hub), and
+        # only if the user hasn't configured these themselves. The notice is
+        # logged at WARNING by the hub, so raising its verbosity to error hides it.
+        os.environ.setdefault("HF_HUB_VERBOSITY", "error")
+        os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
         try:
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:  # pragma: no cover - environment guard
